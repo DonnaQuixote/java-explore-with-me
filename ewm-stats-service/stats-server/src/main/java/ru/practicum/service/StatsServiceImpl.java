@@ -22,11 +22,11 @@ public class StatsServiceImpl implements StatsService {
 
     @Override
     public List<ViewStats> getStats(LocalDateTime start, LocalDateTime end, String[] uris, boolean unique) {
-        if(unique) {
-           if(uris != null) return repository.getUniqueStats(start, end, uris);
+        if (unique) {
+           if (uris != null) return repository.getUniqueStats(start, end, uris);
            else return repository.getUniqueWithoutUris(start, end);
         }
-        if(uris == null) return repository.getWithoutUris(start, end);
+        if (uris == null) return repository.getWithoutUris(start, end);
         return repository.getStats(start, end, uris);
     }
 }
