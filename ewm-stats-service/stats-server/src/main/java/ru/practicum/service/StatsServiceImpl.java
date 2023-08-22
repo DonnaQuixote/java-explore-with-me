@@ -23,7 +23,7 @@ public class StatsServiceImpl implements StatsService {
 
     @Override
     public List<ViewStats> getStats(LocalDateTime start, LocalDateTime end, String[] uris, boolean unique) {
-        if (start.isAfter(end)) throw new DateTimeException("Конец статистики не может быть раньше начала");
+        if (start.isAfter(end)) throw new DateTimeException("The end can't be before the start");
         if (unique) {
            if (uris != null) return repository.getUniqueStats(start, end, uris);
            else return repository.getUniqueWithoutUris(start, end);
