@@ -1,4 +1,4 @@
-package ru.practicum.event;
+package ru.practicum.event.dao;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

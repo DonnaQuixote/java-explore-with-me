@@ -1,13 +1,15 @@
-package ru.practicum.request;
+package ru.practicum.request.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
-import ru.practicum.event.EventRepository;
+import ru.practicum.event.dao.EventRepository;
 import ru.practicum.event.model.Event;
 import ru.practicum.event.model.EventState;
+import ru.practicum.request.dto.RequestStatus;
 import ru.practicum.request.dao.RequestRepository;
 import ru.practicum.request.dto.ParticipationRequestDto;
+import ru.practicum.request.mapper.RequestMapper;
 import ru.practicum.request.model.ParticipationRequest;
 import ru.practicum.user.dao.UserRepository;
 import ru.practicum.user.model.User;
@@ -17,11 +19,12 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class RequestService {
+public class RequestServiceImpl implements RequestService {
     private final RequestRepository repository;
     private final UserRepository userRepository;
     private final EventRepository eventRepository;
 
+    @Override
     public ParticipationRequestDto postRequest(Long userId, Long eventId) {
         User user = userRepository.findById(userId).orElseThrow(() ->
                 new IllegalArgumentException(String.format("User with id=%d was not found", userId)));
@@ -48,6 +51,7 @@ public class RequestService {
                 RequestStatus.CONFIRMED : RequestStatus.PENDING)));
     }
 
+    @Override
     public ParticipationRequestDto patchRequest(Long userId, Long requestId) {
         ParticipationRequest request = repository.findByRequester_IdAndId(userId, requestId).orElseThrow(() ->
                 new IllegalArgumentException(String.format("Request with id=%d was not found", requestId)));
@@ -56,6 +60,7 @@ public class RequestService {
         return RequestMapper.toRequestDto(request);
     }
 
+    @Override
     public List<ParticipationRequestDto> getRequests(Long userId) {
         userRepository.findById(userId).orElseThrow(() ->
                 new IllegalArgumentException(String.format("User with id=%d was not found", userId)));

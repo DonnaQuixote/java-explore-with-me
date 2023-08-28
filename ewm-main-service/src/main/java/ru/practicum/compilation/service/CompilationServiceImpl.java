@@ -11,7 +11,7 @@ import ru.practicum.compilation.dto.NewCompilationDto;
 import ru.practicum.compilation.dto.UpdateCompilationRequest;
 import ru.practicum.compilation.mapper.CompilationMapper;
 import ru.practicum.compilation.model.Compilation;
-import ru.practicum.event.EventRepository;
+import ru.practicum.event.dao.EventRepository;
 import ru.practicum.event.model.Event;
 
 import java.util.*;

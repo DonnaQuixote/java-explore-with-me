@@ -19,7 +19,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<UserDto> getUsers(List<Long> ids, Integer from, Integer size) {
-        if(ids == null) return repository
+        if (ids == null) return repository
                 .findAll(PageRequest.of(from / size, size))
                 .map(UserMapper::toUserDto)
                 .toList();
@@ -38,7 +38,7 @@ public class UserServiceImpl implements UserService {
     public void deleteUser(Long userId) {
         try {
             repository.deleteById(userId);
-        } catch(EmptyResultDataAccessException e) {
+        } catch (EmptyResultDataAccessException e) {
             throw new IllegalArgumentException(String.format("User with id=%d was not found", userId));
         }
     }

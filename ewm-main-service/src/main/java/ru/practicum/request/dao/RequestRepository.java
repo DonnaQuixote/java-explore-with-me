@@ -2,7 +2,7 @@ package ru.practicum.request.dao;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-import ru.practicum.request.RequestStatus;
+import ru.practicum.request.dto.RequestStatus;
 import ru.practicum.request.model.ParticipationRequest;
 
 import java.util.List;

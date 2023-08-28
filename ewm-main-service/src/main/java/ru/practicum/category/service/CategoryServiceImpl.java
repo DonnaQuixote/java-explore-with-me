@@ -27,7 +27,7 @@ public class CategoryServiceImpl implements CategoryService {
     public void deleteCategory(Long catId) {
         try {
             repository.deleteById(catId);
-        } catch(EmptyResultDataAccessException e) {
+        } catch (EmptyResultDataAccessException e) {
             throw new IllegalArgumentException(
                     String.format("Category with id=%d was not found", catId));
         }

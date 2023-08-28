@@ -1,4 +1,4 @@
-package ru.practicum.event;
+package ru.practicum.event.mapper;
 
 import ru.practicum.category.mapper.CategoryMapper;
 import ru.practicum.category.model.Category;

@@ -1,4 +1,4 @@
-package ru.practicum.event;
+package ru.practicum.event.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -9,11 +9,13 @@ import ru.practicum.StatsClient;
 import ru.practicum.ViewStats;
 import ru.practicum.category.dao.CategoryRepository;
 import ru.practicum.category.model.Category;
+import ru.practicum.event.dao.EventRepository;
 import ru.practicum.event.dto.*;
+import ru.practicum.event.mapper.EventMapper;
 import ru.practicum.event.model.Event;
 import ru.practicum.event.model.EventState;
-import ru.practicum.request.RequestMapper;
-import ru.practicum.request.RequestStatus;
+import ru.practicum.request.mapper.RequestMapper;
+import ru.practicum.request.dto.RequestStatus;
 import ru.practicum.request.dao.RequestRepository;
 import ru.practicum.request.dto.ParticipationRequestDto;
 import ru.practicum.request.model.ParticipationRequest;
@@ -31,7 +33,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class EventService {
+public class EventServiceImpl implements EventService {
     private final EventRepository repository;
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
@@ -39,6 +41,7 @@ public class EventService {
     private final StatsClient statsClient;
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
+    @Override
     public EventFullDto postEvent(Long userId, NewEventDto eventDto) {
         if (eventDto.getEventDate().isBefore(LocalDateTime.now().plusHours(2)))
             throw new DateTimeException(
@@ -54,6 +57,7 @@ public class EventService {
         return EventMapper.toEventFullDto(repository.save(EventMapper.toEvent(eventDto, user, category)));
     }
 
+    @Override
     public EventFullDto getEvent(Long userId, Long eventId) {
         userRepository.findById(userId).orElseThrow(() ->
                 new IllegalArgumentException(String.format("User with id=%d was not found", userId)));
@@ -64,6 +68,7 @@ public class EventService {
         return setStats(event);
     }
 
+    @Override
     public List<EventShortDto> getEvents(Long userId, Integer from, Integer size) {
         User user = userRepository.findById(userId).orElseThrow(() ->
                 new IllegalArgumentException(String.format("User with id=%d was not found", userId)));
@@ -73,6 +78,7 @@ public class EventService {
         return events.stream().map(EventMapper::toEventShortDto).collect(Collectors.toList());
     }
 
+    @Override
     public EventFullDto patchEvent(Long userId, Long eventId, UpdateEventUserRequest request) {
         userRepository.findById(userId).orElseThrow(() ->
                 new IllegalArgumentException(String.format("User with id=%d was not found", userId)));
@@ -91,6 +97,7 @@ public class EventService {
         return patch(event, request, false);
     }
 
+    @Override
     public List<ParticipationRequestDto> getRequests(Long userId, Long eventId) {
         userRepository.findById(userId).orElseThrow(() ->
                 new IllegalArgumentException(String.format("User with id=%d was not found", userId)));
@@ -103,6 +110,7 @@ public class EventService {
                 .collect(Collectors.toList());
     }
 
+    @Override
     public EventRequestStatusUpdateResult patchRequest(Long userId, Long eventId,
                                                        EventRequestStatusUpdateRequest request) {
         userRepository.findById(userId).orElseThrow(() ->
@@ -120,7 +128,7 @@ public class EventService {
 
         List<ParticipationRequest> requests = requestRepository.findAllById(request.getRequestIds());
 
-        for(ParticipationRequest req : requests) {
+        for (ParticipationRequest req : requests) {
             if (request.getStatus() == RequestStatus.CONFIRMED && slots > 0) {
                 req.setStatus(RequestStatus.CONFIRMED);
                 slots--;
@@ -137,6 +145,7 @@ public class EventService {
                         .map(RequestMapper::toRequestDto).collect(Collectors.toList())).build();
     }
 
+    @Override
     public EventFullDto getEvent(Long eventId, HttpServletRequest httpServletRequest) {
         Event event = repository.findById(eventId).orElseThrow(() ->
                 new IllegalArgumentException(String.format("Event with id=%d was not found", eventId)));
@@ -149,6 +158,7 @@ public class EventService {
         return setStats(event);
     }
 
+    @Override
     public List<? extends EventShortDto> getEvents(String text, List<Long> categories, Boolean paid,
                                               LocalDateTime rangeStart,
                                               LocalDateTime rangeEnd,
@@ -181,6 +191,7 @@ public class EventService {
                 .collect(Collectors.toList()) : setStats(events, rangeStart, rangeEnd);
     }
 
+    @Override
     public List<? extends EventShortDto> getEvents(List<Long> users, List<EventState> states,
                                         List<Long> categories, LocalDateTime rangeStart,
                                         LocalDateTime rangeEnd, Integer from, Integer size) {
@@ -194,6 +205,7 @@ public class EventService {
         return setStats(events, rangeStart, rangeEnd);
     }
 
+    @Override
     public EventFullDto patchEvent(Long eventId, UpdateEventAdminRequest request) {
         Event event = repository.findById(eventId).orElseThrow(() ->
                 new IllegalArgumentException(String.format("Event with id=%d was not found", eventId)));
@@ -210,7 +222,7 @@ public class EventService {
         return patch(event, request, true);
     }
 
-    public EventFullDto patch(Event event, UpdateEvent request, boolean isAdmin) {
+    private EventFullDto patch(Event event, UpdateEvent request, boolean isAdmin) {
         if (request.getEventDate() != null) {
             if (request.getEventDate().isBefore(LocalDateTime.now().plusHours(isAdmin ? 1 : 2)))
                 throw new DateTimeException(
