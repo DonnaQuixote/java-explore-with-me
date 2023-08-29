@@ -7,7 +7,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import javax.validation.ValidationException;
+import javax.persistence.EntityNotFoundException;
+
 import java.time.DateTimeException;
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -41,7 +42,7 @@ public class ErrorHandler {
 
     @ExceptionHandler
     @ResponseStatus(NOT_FOUND)
-    public ApiError handleNotFound(final IllegalArgumentException e) {
+    public ApiError handleNotFound(final EntityNotFoundException e) {
         return createError(e, NOT_FOUND, e.getMessage(), "The required object was not found.");
     }
 
@@ -54,7 +55,7 @@ public class ErrorHandler {
 
     @ExceptionHandler
     @ResponseStatus(CONFLICT)
-    public ApiError handleWrongStatus(final ValidationException e) {
+    public ApiError handleWrongStatus(final ConflictException e) {
         return createError(e, CONFLICT, e.getMessage(),
                 "For the requested operation the conditions are not met.");
     }

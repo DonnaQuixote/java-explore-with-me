@@ -9,9 +9,8 @@ import ru.practicum.event.model.Location;
 import java.time.LocalDateTime;
 
 @Data
-@FieldDefaults(level = AccessLevel.PRIVATE)
+@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 @AllArgsConstructor
-@NoArgsConstructor
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
 public class EventFullDto extends EventShortDto {

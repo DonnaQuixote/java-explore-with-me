@@ -14,6 +14,7 @@ import ru.practicum.compilation.model.Compilation;
 import ru.practicum.event.dao.EventRepository;
 import ru.practicum.event.model.Event;
 
+import javax.persistence.EntityNotFoundException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -38,14 +39,14 @@ public class CompilationServiceImpl implements CompilationService {
         try {
             repository.deleteById(compId);
         } catch (EmptyResultDataAccessException e) {
-            throw new IllegalArgumentException(String.format("Compilation with id=%d was not found", compId));
+            throw new EntityNotFoundException(String.format("Compilation with id=%d was not found", compId));
         }
     }
 
     @Override
     public CompilationDto patchCompilation(Long compId, UpdateCompilationRequest request) {
         Compilation compilation = repository.findById(compId).orElseThrow(() ->
-                new IllegalArgumentException(String.format("Compilation with id=%d was not found", compId)));
+                new EntityNotFoundException(String.format("Compilation with id=%d was not found", compId)));
 
         if (request.getPinned() != null) compilation.setPinned(request.getPinned());
         if (request.getTitle() != null) compilation.setTitle(request.getTitle());
@@ -58,7 +59,7 @@ public class CompilationServiceImpl implements CompilationService {
     @Override
     public CompilationDto getCompilation(Long compId) {
         return CompilationMapper.toCompilationDto(repository.findById(compId).orElseThrow(() ->
-                new IllegalArgumentException(String.format("Compilation with id=%d was not found", compId))));
+                new EntityNotFoundException(String.format("Compilation with id=%d was not found", compId))));
     }
 
     @Override

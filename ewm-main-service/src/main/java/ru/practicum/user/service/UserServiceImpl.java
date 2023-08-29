@@ -9,6 +9,7 @@ import ru.practicum.user.dto.NewUserRequest;
 import ru.practicum.user.dto.UserDto;
 import ru.practicum.user.mapper.UserMapper;
 
+import javax.persistence.EntityNotFoundException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -39,7 +40,7 @@ public class UserServiceImpl implements UserService {
         try {
             repository.deleteById(userId);
         } catch (EmptyResultDataAccessException e) {
-            throw new IllegalArgumentException(String.format("User with id=%d was not found", userId));
+            throw new EntityNotFoundException(String.format("User with id=%d was not found", userId));
         }
     }
 }

@@ -4,9 +4,8 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 @Data
-@FieldDefaults(level = AccessLevel.PRIVATE)
+@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 @AllArgsConstructor
-@NoArgsConstructor
 @Builder
 public class ParticipationRequestDto {
     String created;

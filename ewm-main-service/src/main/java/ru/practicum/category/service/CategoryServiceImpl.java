@@ -10,6 +10,7 @@ import ru.practicum.category.dto.NewCategoryDto;
 import ru.practicum.category.mapper.CategoryMapper;
 import ru.practicum.category.model.Category;
 
+import javax.persistence.EntityNotFoundException;
 import java.util.List;
 
 @Service
@@ -28,7 +29,7 @@ public class CategoryServiceImpl implements CategoryService {
         try {
             repository.deleteById(catId);
         } catch (EmptyResultDataAccessException e) {
-            throw new IllegalArgumentException(
+            throw new EntityNotFoundException(
                     String.format("Category with id=%d was not found", catId));
         }
     }
@@ -37,7 +38,7 @@ public class CategoryServiceImpl implements CategoryService {
     public CategoryDto patchCategory(Long catId,
                                      NewCategoryDto newCatDto) {
         if (!repository.existsById(catId))
-            throw new IllegalArgumentException(
+            throw new EntityNotFoundException(
                     String.format("Category with id=%d was not found", catId));
 
         return CategoryMapper.toCategoryDto(repository.save(
@@ -56,7 +57,7 @@ public class CategoryServiceImpl implements CategoryService {
     public CategoryDto getCategory(Long catId) {
         return CategoryMapper
                 .toCategoryDto(repository.findById(catId)
-                        .orElseThrow(() -> new IllegalArgumentException(
+                        .orElseThrow(() -> new EntityNotFoundException(
                                 String.format("Category with id=%d was not found", catId))));
     }
 }

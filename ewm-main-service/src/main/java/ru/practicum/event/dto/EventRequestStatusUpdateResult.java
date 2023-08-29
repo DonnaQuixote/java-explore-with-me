@@ -7,9 +7,8 @@ import ru.practicum.request.dto.ParticipationRequestDto;
 import java.util.List;
 
 @Data
-@FieldDefaults(level = AccessLevel.PRIVATE)
+@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 @AllArgsConstructor
-@NoArgsConstructor
 @Builder
 public class EventRequestStatusUpdateResult {
     List<ParticipationRequestDto> confirmedRequests;

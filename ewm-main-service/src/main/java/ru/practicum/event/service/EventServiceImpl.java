@@ -14,6 +14,7 @@ import ru.practicum.event.dto.*;
 import ru.practicum.event.mapper.EventMapper;
 import ru.practicum.event.model.Event;
 import ru.practicum.event.model.EventState;
+import ru.practicum.exception.ConflictException;
 import ru.practicum.request.mapper.RequestMapper;
 import ru.practicum.request.dto.RequestStatus;
 import ru.practicum.request.dao.RequestRepository;
@@ -22,8 +23,8 @@ import ru.practicum.request.model.ParticipationRequest;
 import ru.practicum.user.dao.UserRepository;
 import ru.practicum.user.model.User;
 
+import javax.persistence.EntityNotFoundException;
 import javax.servlet.http.HttpServletRequest;
-import javax.validation.ValidationException;
 import java.time.DateTimeException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -48,10 +49,10 @@ public class EventServiceImpl implements EventService {
                     "Field: eventDate. Error: before the event less than two hours. Value: " + eventDto.getEventDate());
 
         User user = userRepository.findById(userId).orElseThrow(() ->
-                new IllegalArgumentException(String.format("User with id=%d was not found", userId)));
+                new EntityNotFoundException(String.format("User with id=%d was not found", userId)));
 
         Category category = categoryRepository.findById(eventDto.getCategory()).orElseThrow(() ->
-                new IllegalArgumentException(
+                new EntityNotFoundException(
                         String.format("Category with id=%d was not found", eventDto.getCategory())));
 
         return EventMapper.toEventFullDto(repository.save(EventMapper.toEvent(eventDto, user, category)));
@@ -60,10 +61,10 @@ public class EventServiceImpl implements EventService {
     @Override
     public EventFullDto getEvent(Long userId, Long eventId) {
         userRepository.findById(userId).orElseThrow(() ->
-                new IllegalArgumentException(String.format("User with id=%d was not found", userId)));
+                new EntityNotFoundException(String.format("User with id=%d was not found", userId)));
 
         Event event = repository.findById(eventId).orElseThrow(() ->
-                new IllegalArgumentException(String.format("Event with id=%d was not found", eventId)));
+                new EntityNotFoundException(String.format("Event with id=%d was not found", eventId)));
 
         return setStats(event);
     }
@@ -71,7 +72,7 @@ public class EventServiceImpl implements EventService {
     @Override
     public List<EventShortDto> getEvents(Long userId, Integer from, Integer size) {
         User user = userRepository.findById(userId).orElseThrow(() ->
-                new IllegalArgumentException(String.format("User with id=%d was not found", userId)));
+                new EntityNotFoundException(String.format("User with id=%d was not found", userId)));
 
         List<Event> events = repository.findByInitiator(user, PageRequest.of(from / size, size));
 
@@ -81,12 +82,12 @@ public class EventServiceImpl implements EventService {
     @Override
     public EventFullDto patchEvent(Long userId, Long eventId, UpdateEventUserRequest request) {
         userRepository.findById(userId).orElseThrow(() ->
-                new IllegalArgumentException(String.format("User with id=%d was not found", userId)));
+                new EntityNotFoundException(String.format("User with id=%d was not found", userId)));
 
         Event event = repository.findByIdAndInitiator_Id(eventId, userId).orElseThrow(() ->
-                new IllegalArgumentException(String.format("Event with id=%d was not found", eventId)));
+                new EntityNotFoundException(String.format("Event with id=%d was not found", eventId)));
 
-        if (event.getState() == EventState.PUBLISHED) throw new ValidationException(
+        if (event.getState() == EventState.PUBLISHED) throw new ConflictException(
                 "Only pending or canceled events can be changed");
 
         if (request.getStateAction() != null) {
@@ -100,10 +101,10 @@ public class EventServiceImpl implements EventService {
     @Override
     public List<ParticipationRequestDto> getRequests(Long userId, Long eventId) {
         userRepository.findById(userId).orElseThrow(() ->
-                new IllegalArgumentException(String.format("User with id=%d was not found", userId)));
+                new EntityNotFoundException(String.format("User with id=%d was not found", userId)));
 
         repository.findByIdAndInitiator_Id(eventId, userId).orElseThrow(() ->
-                new IllegalArgumentException(String.format("Event with id=%d was not found", eventId)));
+                new EntityNotFoundException(String.format("Event with id=%d was not found", eventId)));
 
         return requestRepository.findByEvent_Id(eventId).stream()
                 .map(RequestMapper::toRequestDto)
@@ -114,17 +115,17 @@ public class EventServiceImpl implements EventService {
     public EventRequestStatusUpdateResult patchRequest(Long userId, Long eventId,
                                                        EventRequestStatusUpdateRequest request) {
         userRepository.findById(userId).orElseThrow(() ->
-                new IllegalArgumentException(String.format("User with id=%d was not found", userId)));
+                new EntityNotFoundException(String.format("User with id=%d was not found", userId)));
 
         Event event = repository.findByIdAndInitiator_Id(eventId, userId).orElseThrow(() ->
-                new IllegalArgumentException(String.format("Event with id=%d was not found", eventId)));
+                new EntityNotFoundException(String.format("Event with id=%d was not found", eventId)));
 
-        if (!event.getRequestModeration() || event.getParticipantLimit() == 0) throw new ValidationException(
+        if (!event.getRequestModeration() || event.getParticipantLimit() == 0) throw new ConflictException(
                 "No moderation needed");
 
         long slots = event.getParticipantLimit() - requestRepository.countByEvent_IdAndStatus(eventId,
                 RequestStatus.CONFIRMED);
-        if (slots <= 0) throw new ValidationException("The participant limit has been reached");
+        if (slots <= 0) throw new ConflictException("The participant limit has been reached");
 
         List<ParticipationRequest> requests = requestRepository.findAllById(request.getRequestIds());
 
@@ -148,9 +149,9 @@ public class EventServiceImpl implements EventService {
     @Override
     public EventFullDto getEvent(Long eventId, HttpServletRequest httpServletRequest) {
         Event event = repository.findById(eventId).orElseThrow(() ->
-                new IllegalArgumentException(String.format("Event with id=%d was not found", eventId)));
+                new EntityNotFoundException(String.format("Event with id=%d was not found", eventId)));
 
-        if (event.getState() != EventState.PUBLISHED) throw new IllegalArgumentException(
+        if (event.getState() != EventState.PUBLISHED) throw new EntityNotFoundException(
                 String.format("Event with id=%d was not found", eventId));
 
         saveHit(httpServletRequest);
@@ -158,61 +159,57 @@ public class EventServiceImpl implements EventService {
         return setStats(event);
     }
 
-    @Override
-    public List<? extends EventShortDto> getEvents(String text, List<Long> categories, Boolean paid,
-                                              LocalDateTime rangeStart,
-                                              LocalDateTime rangeEnd,
-                                              Boolean onlyAvailable,
-                                              String sort, Integer from,
-                                              Integer size,
-                                              HttpServletRequest httpServletRequest) {
-        if (rangeStart == null) rangeStart = LocalDateTime.now();
-        if (rangeEnd == null) rangeEnd = LocalDateTime.now().plusYears(100);
+    public List<? extends EventShortDto> getEventsPublic(EventSearchParams params) {
+        if (params.getRangeStart() == null) params.setRangeStart(LocalDateTime.now());
+        if (params.getRangeEnd() == null) params.setRangeEnd(LocalDateTime.now().plusYears(100));
 
-        if (rangeStart.isAfter(rangeEnd)) throw new DateTimeException("The end can't be before the start");
+        if (params.getRangeStart().isAfter(params.getRangeEnd()))
+            throw new DateTimeException("The end can't be before the start");
 
-        List<EventShortDto> events = repository.search(text, categories, paid,
-                        rangeStart, rangeEnd, onlyAvailable,
-                PageRequest.of(from / size, size))
+        List<EventShortDto> events = repository.search(
+                params.getText(), params.getCategories(),
+                        params.getPaid(), params.getRangeStart(),
+                        params.getRangeEnd(), params.getOnlyAvailable(),
+                        PageRequest.of(params.getFrom() / params.getSize(), params.getSize()))
                 .stream().map(EventMapper::toEventShortDto).collect(Collectors.toList());
 
         boolean viewsSort = false;
-        if (sort != null) {
-            if (sort.equals("EVENT_DATE")) {
+        if (params.getSort() != null) {
+            if (params.getSort().equals("EVENT_DATE")) {
                 events = events.stream()
                         .sorted(Comparator.comparing(EventShortDto::getEventDate))
                         .collect(Collectors.toList());
             } else viewsSort = true;
         }
 
-        saveHit(httpServletRequest);
-        return viewsSort ? setStats(events, rangeStart, rangeEnd).stream()
+        saveHit(params.getRequest());
+        return viewsSort ? setStats(events, params.getRangeStart(), params.getRangeEnd()).stream()
                 .sorted(Comparator.comparingLong(EventShortDto::getViews))
-                .collect(Collectors.toList()) : setStats(events, rangeStart, rangeEnd);
+                .collect(Collectors.toList()) : setStats(events, params.getRangeStart(), params.getRangeEnd());
     }
 
     @Override
-    public List<? extends EventShortDto> getEvents(List<Long> users, List<EventState> states,
-                                        List<Long> categories, LocalDateTime rangeStart,
-                                        LocalDateTime rangeEnd, Integer from, Integer size) {
-        if (rangeStart == null) rangeStart = LocalDateTime.now();
-        if (rangeEnd == null) rangeEnd = LocalDateTime.now().plusYears(100);
+    public List<? extends EventShortDto> getEvents(EventSearchParams params) {
+        if (params.getRangeStart() == null) params.setRangeStart(LocalDateTime.now());
+        if (params.getRangeEnd() == null) params.setRangeEnd(LocalDateTime.now().plusYears(100));
 
-        Pageable page = PageRequest.of(from / size, size);
-        List<EventFullDto> events = repository.adminSearch(users, states, categories, rangeStart, rangeEnd, page)
+        Pageable page = PageRequest.of(params.getFrom() / params.getSize(), params.getSize());
+        List<EventFullDto> events = repository.adminSearch(
+                params.getUsers(), params.getStates(), params.getCategories(),
+                        params.getRangeStart(), params.getRangeEnd(), page)
                 .stream().map(EventMapper::toEventFullDto).collect(Collectors.toList());
 
-        return setStats(events, rangeStart, rangeEnd);
+        return setStats(events, params.getRangeStart(), params.getRangeEnd());
     }
 
     @Override
     public EventFullDto patchEvent(Long eventId, UpdateEventAdminRequest request) {
         Event event = repository.findById(eventId).orElseThrow(() ->
-                new IllegalArgumentException(String.format("Event with id=%d was not found", eventId)));
+                new EntityNotFoundException(String.format("Event with id=%d was not found", eventId)));
 
         if (request.getStateAction() != null) {
             if (event.getState() == EventState.PUBLISHED || event.getState() == EventState.CANCELED)
-                throw new ValidationException("Already published or canceled");
+                throw new ConflictException("Already published or canceled");
             if (request.getStateAction() == AdminStateAction.PUBLISH_EVENT) {
                 event.setState(EventState.PUBLISHED);
                 event.setPublishedOn(LocalDateTime.now());
@@ -234,7 +231,7 @@ public class EventServiceImpl implements EventService {
 
         if (request.getAnnotation() != null) event.setAnnotation(request.getAnnotation());
         if (request.getCategory() != null) event.setCategory(categoryRepository.findById(request.getCategory())
-                .orElseThrow(() -> new IllegalArgumentException(String.format("Category with id=%d was not found",
+                .orElseThrow(() -> new EntityNotFoundException(String.format("Category with id=%d was not found",
                         request.getCategory()))));
         if (request.getDescription() != null) event.setDescription(request.getDescription());
         if (request.getPaid() != null) event.setPaid(request.getPaid());

@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import ru.practicum.event.dto.EventSearchParams;
 import ru.practicum.event.service.EventService;
 import ru.practicum.event.dto.EventFullDto;
 import ru.practicum.event.dto.EventShortDto;
@@ -39,8 +40,19 @@ public class EventController {
                                                    @Positive @RequestParam(defaultValue = "10") Integer size,
                                               HttpServletRequest httpServletRequest) {
         log.debug("GET events (public)");
-        return service.getEvents(text, categories, paid, rangeStart, rangeEnd, onlyAvailable, sort, from, size,
-                httpServletRequest);
+        return service.getEventsPublic(
+                EventSearchParams.builder()
+                        .text(text)
+                        .categories(categories)
+                        .paid(paid)
+                        .rangeStart(rangeStart)
+                        .rangeEnd(rangeEnd)
+                        .onlyAvailable(onlyAvailable)
+                        .sort(sort)
+                        .from(from)
+                        .size(size)
+                        .request(httpServletRequest)
+                        .build());
     }
 
     @GetMapping("/{id}")
