@@ -30,9 +30,11 @@ services:
       - ewm-db
       - stats-server
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://ewm-db:5432/ewm-db
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=root
+      - DB_NAME=ewm-db
+      - PG_USER=postgres
+      - PG_PASS=root
+      - DB_HOST=ewm-db
+      - DB_PORT=5432
     restart: on-failure
 
   ewm-db:
