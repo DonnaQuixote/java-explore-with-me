@@ -14,7 +14,8 @@ import ru.practicum.event.dto.*;
 import ru.practicum.event.mapper.EventMapper;
 import ru.practicum.event.model.Event;
 import ru.practicum.event.model.EventState;
-import ru.practicum.exception.ConflictException;
+import ru.practicum.exception.EditingProhibitedException;
+import ru.practicum.exception.WrongEventStatusException;
 import ru.practicum.request.mapper.RequestMapper;
 import ru.practicum.request.dto.RequestStatus;
 import ru.practicum.request.dao.RequestRepository;
@@ -87,7 +88,7 @@ public class EventServiceImpl implements EventService {
         Event event = repository.findByIdAndInitiator_Id(eventId, userId).orElseThrow(() ->
                 new EntityNotFoundException(String.format("Event with id=%d was not found", eventId)));
 
-        if (event.getState() == EventState.PUBLISHED) throw new ConflictException(
+        if (event.getState() == EventState.PUBLISHED) throw new WrongEventStatusException(
                 "Only pending or canceled events can be changed");
 
         if (request.getStateAction() != null) {
@@ -120,12 +121,13 @@ public class EventServiceImpl implements EventService {
         Event event = repository.findByIdAndInitiator_Id(eventId, userId).orElseThrow(() ->
                 new EntityNotFoundException(String.format("Event with id=%d was not found", eventId)));
 
-        if (!event.getRequestModeration() || event.getParticipantLimit() == 0) throw new ConflictException(
+        if (!event.getRequestModeration() || event.getParticipantLimit() == 0)
+            throw new EditingProhibitedException(
                 "No moderation needed");
 
         long slots = event.getParticipantLimit() - requestRepository.countByEvent_IdAndStatus(eventId,
                 RequestStatus.CONFIRMED);
-        if (slots <= 0) throw new ConflictException("The participant limit has been reached");
+        if (slots <= 0) throw new EditingProhibitedException("The participant limit has been reached");
 
         List<ParticipationRequest> requests = requestRepository.findAllById(request.getRequestIds());
 
@@ -159,47 +161,45 @@ public class EventServiceImpl implements EventService {
         return setStats(event);
     }
 
-    public List<? extends EventShortDto> getEventsPublic(EventSearchParams params) {
-        if (params.getRangeStart() == null) params.setRangeStart(LocalDateTime.now());
-        if (params.getRangeEnd() == null) params.setRangeEnd(LocalDateTime.now().plusYears(100));
+    public List<? extends EventShortDto> getEventsPublic(Query query) {
+        if (query.getRangeStart() == null) query.setRangeStart(LocalDateTime.now());
+        if (query.getRangeEnd() == null) query.setRangeEnd(LocalDateTime.now().plusYears(100));
 
-        if (params.getRangeStart().isAfter(params.getRangeEnd()))
+        if (query.getRangeStart().isAfter(query.getRangeEnd()))
             throw new DateTimeException("The end can't be before the start");
 
         List<EventShortDto> events = repository.search(
-                params.getText(), params.getCategories(),
-                        params.getPaid(), params.getRangeStart(),
-                        params.getRangeEnd(), params.getOnlyAvailable(),
-                        PageRequest.of(params.getFrom() / params.getSize(), params.getSize()))
+                query.getText(), query.getCategories(),
+                        query.getPaid(), query.getRangeStart(),
+                        query.getRangeEnd(), query.getOnlyAvailable(),
+                        PageRequest.of(query.getFrom() / query.getSize(), query.getSize()))
                 .stream().map(EventMapper::toEventShortDto).collect(Collectors.toList());
 
         boolean viewsSort = false;
-        if (params.getSort() != null) {
-            if (params.getSort().equals("EVENT_DATE")) {
-                events = events.stream()
-                        .sorted(Comparator.comparing(EventShortDto::getEventDate))
-                        .collect(Collectors.toList());
-            } else viewsSort = true;
-        }
+        if ("EVENT_DATE".equals(query.getSort())) {
+            events = events.stream()
+                    .sorted(Comparator.comparing(EventShortDto::getEventDate))
+                    .collect(Collectors.toList());
+        } else if ("VIEWS".equals(query.getSort())) viewsSort = true;
 
-        saveHit(params.getRequest());
-        return viewsSort ? setStats(events, params.getRangeStart(), params.getRangeEnd()).stream()
+        saveHit(query.getRequest());
+        return viewsSort ? setStats(events, query.getRangeStart(), query.getRangeEnd()).stream()
                 .sorted(Comparator.comparingLong(EventShortDto::getViews))
-                .collect(Collectors.toList()) : setStats(events, params.getRangeStart(), params.getRangeEnd());
+                .collect(Collectors.toList()) : setStats(events, query.getRangeStart(), query.getRangeEnd());
     }
 
     @Override
-    public List<? extends EventShortDto> getEvents(EventSearchParams params) {
-        if (params.getRangeStart() == null) params.setRangeStart(LocalDateTime.now());
-        if (params.getRangeEnd() == null) params.setRangeEnd(LocalDateTime.now().plusYears(100));
+    public List<? extends EventShortDto> getEvents(Query query) {
+        if (query.getRangeStart() == null) query.setRangeStart(LocalDateTime.now());
+        if (query.getRangeEnd() == null) query.setRangeEnd(LocalDateTime.now().plusYears(100));
 
-        Pageable page = PageRequest.of(params.getFrom() / params.getSize(), params.getSize());
+        Pageable page = PageRequest.of(query.getFrom() / query.getSize(), query.getSize());
         List<EventFullDto> events = repository.adminSearch(
-                params.getUsers(), params.getStates(), params.getCategories(),
-                        params.getRangeStart(), params.getRangeEnd(), page)
+                query.getUsers(), query.getStates(), query.getCategories(),
+                        query.getRangeStart(), query.getRangeEnd(), page)
                 .stream().map(EventMapper::toEventFullDto).collect(Collectors.toList());
 
-        return setStats(events, params.getRangeStart(), params.getRangeEnd());
+        return setStats(events, query.getRangeStart(), query.getRangeEnd());
     }
 
     @Override
@@ -209,7 +209,7 @@ public class EventServiceImpl implements EventService {
 
         if (request.getStateAction() != null) {
             if (event.getState() == EventState.PUBLISHED || event.getState() == EventState.CANCELED)
-                throw new ConflictException("Already published or canceled");
+                throw new WrongEventStatusException("Already published or canceled");
             if (request.getStateAction() == AdminStateAction.PUBLISH_EVENT) {
                 event.setState(EventState.PUBLISHED);
                 event.setPublishedOn(LocalDateTime.now());

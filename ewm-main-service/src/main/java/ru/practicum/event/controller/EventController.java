@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import ru.practicum.event.dto.EventSearchParams;
+import ru.practicum.event.dto.Query;
 import ru.practicum.event.service.EventService;
 import ru.practicum.event.dto.EventFullDto;
 import ru.practicum.event.dto.EventShortDto;
@@ -41,7 +41,7 @@ public class EventController {
                                               HttpServletRequest httpServletRequest) {
         log.debug("GET events (public)");
         return service.getEventsPublic(
-                EventSearchParams.builder()
+                Query.builder()
                         .text(text)
                         .categories(categories)
                         .paid(paid)
