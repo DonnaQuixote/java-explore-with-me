@@ -13,7 +13,7 @@ import java.util.List;
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 @AllArgsConstructor
 @Builder
-public class EventSearchParams {
+public class Query {
     List<Long> users;
     List<EventState> states;
     String text;

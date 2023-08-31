@@ -4,9 +4,11 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.SuperBuilder;
+import ru.practicum.comment.dto.CommentDto;
 import ru.practicum.event.model.Location;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
@@ -23,4 +25,5 @@ public class EventFullDto extends EventShortDto {
     LocalDateTime publishedOn;
     Boolean requestModeration;
     String state;
+    List<CommentDto> comments;
 }

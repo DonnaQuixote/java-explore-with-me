@@ -22,9 +22,9 @@ public interface EventService {
 
     EventFullDto getEvent(Long eventId, HttpServletRequest request);
 
-    List<? extends EventShortDto> getEventsPublic(EventSearchParams params);
+    List<? extends EventShortDto> getEventsPublic(Query params);
 
-    List<? extends EventShortDto> getEvents(EventSearchParams params);
+    List<? extends EventShortDto> getEvents(Query params);
 
     EventFullDto patchEvent(Long eventId, UpdateEventAdminRequest request);
 }

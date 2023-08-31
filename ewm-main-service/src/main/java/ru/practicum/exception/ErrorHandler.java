@@ -55,7 +55,14 @@ public class ErrorHandler {
 
     @ExceptionHandler
     @ResponseStatus(CONFLICT)
-    public ApiError handleWrongStatus(final ConflictException e) {
+    public ApiError handleEditingProhibited(final EditingProhibitedException e) {
+        return createError(e, CONFLICT, e.getMessage(),
+                "For the requested operation the conditions are not met.");
+    }
+
+    @ExceptionHandler
+    @ResponseStatus(CONFLICT)
+    public ApiError handleWrongStatus(final WrongEventStatusException e) {
         return createError(e, CONFLICT, e.getMessage(),
                 "For the requested operation the conditions are not met.");
     }
